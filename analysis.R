@@ -18,3 +18,51 @@ fit_all <- lm(MPG ~ ., data = cars_vars)
 
 # Print the summary of the model
 summary(fit_all)
+
+
+
+# Load caret
+library(caret)
+
+# Split the data into training and test sets
+#Create a data partition that divides the original data into 80%/20% sections and (roughly) evenly divides the partitions between the different types of Transmission.
+set.seed(1234)
+in_train <- createDataPartition(cars_vars$Transmission, p = 0.8, list = FALSE)
+training <- cars_vars[in_train, ]
+testing <- cars_vars[-in_train, ]
+
+
+#train one linear regression model and one random forest model, without any resampling. (trainControl(method = "none") turns off all resampling.)
+# Train a linear regression model
+fit_lm <- train(log(MPG) ~ ., method = "lm", data = training,
+                trControl = trainControl(method = "none"))
+
+# Print the model object
+fit_lm
+
+# Train a random forest model
+fit_rf <- train(log(MPG) ~ ., method = "rf", data = training,
+                trControl = trainControl(method = "none"))
+
+# Print the model object
+fit_rf
+
+# Load yardstick
+library(yardstick)
+
+# Create the new columns
+results <- training %>%
+  mutate(`Linear regression` = predict(fit_lm, training),
+         `Random forest` = predict(fit_rf, training))
+
+# Evaluate the performance: RMSE and R_squared
+metrics(results, truth = MPG, estimate = `Linear regression`)
+metrics(results, truth = MPG, estimate = `Random forest`)
+
+# Using testing data
+results <- testing %>%
+  mutate(`Linear regression` = predict(fit_lm, testing),
+         `Random forest` = predict(fit_rf, testing))
+
+metrics(results, truth = MPG, estimate = `Linear regression`)
+metrics(results, truth = MPG, estimate = `Random forest`)
