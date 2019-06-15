@@ -66,3 +66,31 @@ results <- testing %>%
 
 metrics(results, truth = MPG, estimate = `Linear regression`)
 metrics(results, truth = MPG, estimate = `Random forest`)
+
+
+# Fit the models with bootstrap resampling
+cars_lm_bt <- train(log(MPG) ~ ., method = "lm", data = training,
+                    trControl = trainControl(method = "boot"))
+cars_rf_bt <- train(log(MPG) ~ ., method = "rf", data = training,
+                    trControl = trainControl(method = "boot"))
+
+# Quick look at the models
+cars_lm_bt
+cars_rf_bt
+
+results <- testing %>%
+  mutate(`Linear regression` = predict(cars_lm_bt, testing),
+         `Random forest` = predict(cars_rf_bt, testing))
+
+metrics(results, truth = MPG, estimate = `Linear regression`)
+metrics(results, truth = MPG, estimate = `Random forest`)
+
+#visualiza precitions vs true values
+library(tidyr)
+results %>%
+  gather(Method, Result, `Linear regression`:`Random forest`) %>%
+  ggplot(aes(log(MPG), Result, color = Method)) +
+  geom_point(size = 1.5, alpha = 0.5) +
+  facet_wrap(~Method) +
+  geom_abline(lty = 2, color = "gray50") +
+  geom_smooth(method = "lm")
